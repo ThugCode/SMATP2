@@ -38,21 +38,27 @@ public class Negociateur extends Thread {
 				switch(msg.getType()) {
 
 				case PROPOSITION :
-					log("Proposition : " + msg.getPrix());
+					log("Proposition reçue : " + msg.getPrix());
 
 					if(this.acceptProposition(msg.getPrix())) {
 						log("Proposition acceptée : " + this.prixActuel);
-						finNego = true;
 						msg = new Message(Commons.TypeMessage.ACCEPT, this.prixActuel);
 						outToServer.writeObject(msg);
+						finNego = true;
 					} else {
-						log("Contre-Proposition : " + this.prixActuel);
+						log("Contre-Proposition soumise : " + this.prixActuel);
 						msg = new Message(Commons.TypeMessage.COUNTER, this.prixActuel);
 						outToServer.writeObject(msg);
-					};
+						
+						this.nbPropositions++;
+					}
+					break;
 					
 				case ACCEPT :
 					log("Contre-Proposition acceptée par le fournisseur : " + this.prixActuel);
+					finNego = true;
+					break;
+					
 				default :
 					System.out.println("Defaut");
 				}
@@ -80,14 +86,14 @@ public class Negociateur extends Thread {
 	}
 
 	private boolean acceptProposition(int prix) {
-		log("Prix actuel :"+ this.prixActuel);
 		if(prix > this.prixMax) {
 			log("proposition > prixMax");
+			this.prixActuel = (int) (prix - (prix*0.2));
 			return false;
 		}
 		else {
 			log("proposition < prixMax");
-			if((new Random().nextInt(10)) > 5 && this.nbPropositions < 6) {
+			if((new Random().nextInt(10)) > 3 && this.nbPropositions < 6) {
 				this.prixActuel += (prix - this.prixActuel)/8;
 				log("On essaye de faire baisser le prix");
 				return false;

@@ -18,6 +18,7 @@ public class Fournisseur extends Thread {
 		try {
 			this.socket = new ServerSocket(8080);
 			this.billets = new ArrayList<BilletAvion>();
+			this.nbPropositions = 0;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -25,7 +26,6 @@ public class Fournisseur extends Thread {
 	
 	@Override
 	public void run() {
-		//Reception appel offre
 		Socket socketClient;
 		try {
 			socketClient = this.socket.accept();
@@ -43,15 +43,40 @@ public class Fournisseur extends Thread {
 		        	if(billets.contains(msg.getBillet())) {
 		        		int i = billets.indexOf(msg.getBillet());
 		        		this.offre = billets.get(i);
+		        		this.prixActuel = this.offre.getPrix();
+		        		
+		        		log("Envoie d'une offre : " + this.offre.getPrix());
 		        		msg = new Message(Commons.TypeMessage.PROPOSITION, this.offre.getPrix());
+		        		outToClient.writeObject(msg);
+		        	} else {
+		        		log("Pas de billet disponible");
 		        	}
+		        	break;
 		        		
 		        case COUNTER :
+		        	log("Contre-proposition reçue : " + msg.getPrix());
+		        	
+		        	if(this.acceptProposition(msg.getPrix())) {
+		        		log("Contre-proposition acceptée : " + this.prixActuel);
+		        		
+		        		msg = new Message(Commons.TypeMessage.ACCEPT, this.prixActuel);
+		        		outToClient.writeObject(msg);
+		        	} else {
+		        		log("Envoie d'une nouvelle propostion : " + this.prixActuel);
+		        		
+		        		msg = new Message(Commons.TypeMessage.PROPOSITION, this.prixActuel);
+		        		outToClient.writeObject(msg);
+		        	}
+		        	break;
 		        	
 		        case ACCEPT : 
 		        	log("Proposition acceptée : " + msg.getPrix());
+		        	finNego = true;
+		        	break;
+		        	
 		        default :
 		        	System.out.println("Default");
+		        	break;
 		        }
 	        }
 	        
@@ -73,11 +98,12 @@ public class Fournisseur extends Thread {
 	private boolean acceptProposition(int prix) {
 		if(prix < this.offre.getPrixMin()) {
 			log("proposition < prixMin");
+			this.prixActuel = (int) (prix * 1.2);
 			return false;
 		} else {
 			log("proposition > prixMin");
-			if((new Random().nextInt(10)) > 5 && this.nbPropositions < 6) {
-				this.prixActuel += (prix - this.prixActuel)/8;
+			if((new Random().nextInt(10)) > 3 && this.nbPropositions < 6) {
+				this.prixActuel = prix + prix/8;
 				log("On essaye de faire monter le prix");
 				return false;
 			}
@@ -103,5 +129,9 @@ public class Fournisseur extends Thread {
 
 	public ServerSocket getSocket() {
 		return socket;
+	}
+	
+	public void addBillet(BilletAvion billet) {
+		this.billets.add(billet);
 	}
 }
