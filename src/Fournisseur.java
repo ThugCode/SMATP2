@@ -5,18 +5,23 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Fournisseur extends Thread {
 	
+	private final static int MAX_PROPOSITIONS = 5;
+	
+	private String nom;
 	private ServerSocket socket;
 	private ArrayList<BilletAvion> billets;
 	private BilletAvion offre;
 	private int nbPropositions;
 	private int prixActuel;
 	
-	public Fournisseur() {
+	public Fournisseur(String nom) {
 		try {
-			this.socket = new ServerSocket(8080);
+			this.nom = nom;
+			this.socket = new ServerSocket(0);
 			this.billets = new ArrayList<BilletAvion>();
 			this.nbPropositions = 0;
 		} catch (IOException e) {
@@ -72,6 +77,9 @@ public class Fournisseur extends Thread {
 		        case ACCEPT : 
 		        	log("Proposition acceptée : " + msg.getPrix());
 		        	finNego = true;
+		        	
+		        	msg = new Message(Commons.TypeMessage.ACCEPT, this.prixActuel);
+		        	outToClient.writeObject(msg);
 		        	break;
 		        	
 		        default :
@@ -85,25 +93,19 @@ public class Fournisseur extends Thread {
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-		
-		//Proposition offre valable
-		
-		//Début négociation
-		
-		//pour chaque proposition vérification de l'acceptation
-		
-		//sinon continue ou pas
 	}
 	
 	private boolean acceptProposition(int prix) {
-		if(prix < this.offre.getPrixMin()) {
+		double pourcentage = ThreadLocalRandom.current().nextDouble(1.1, 1.5);
+		
+		if(prix < this.offre.getPrix() / 2) {
 			log("proposition < prixMin");
-			this.prixActuel = (int) (prix * 1.2);
+			this.prixActuel = (int) (this.offre.getPrix() * pourcentage);
 			return false;
 		} else {
 			log("proposition > prixMin");
-			if((new Random().nextInt(10)) > 3 && this.nbPropositions < 6) {
-				this.prixActuel = prix + prix/8;
+			if(this.nbPropositions < Fournisseur.MAX_PROPOSITIONS) {
+				this.prixActuel = (int) (prix * pourcentage);
 				log("On essaye de faire monter le prix");
 				return false;
 			}
@@ -116,7 +118,15 @@ public class Fournisseur extends Thread {
 	
 	private void log(String s) {
 		if(Main.verbose)
-			System.out.println("Fournisseur : " + s);
+			System.out.println("Fournisseur "+ this.nom +" : " + s);
+	}
+
+	public String getNom() {
+		return nom;
+	}
+
+	public void setNom(String nom) {
+		this.nom = nom;
 	}
 
 	public ArrayList<BilletAvion> getBillets() {

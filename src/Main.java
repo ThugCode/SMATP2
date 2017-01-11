@@ -1,19 +1,32 @@
+import java.util.ArrayList;
 
 public class Main {
 	
 	public static boolean verbose = true;
 	
 	public static void main(String[] args) {
-		Fournisseur airFrance = new Fournisseur();
-		Negociateur bob = new Negociateur(airFrance);
 		
-		BilletAvion billet = new BilletAvion(Commons.Destination.PARIS,Commons.Destination.LONDRES, 200, 100, 160);
+		//Billets
+		BilletAvion billet = new BilletAvion(Commons.Destination.PARIS,Commons.Destination.LONDRES, 200);
 		
-		bob.setBillet(billet);
+		//Fournisseurs
+		ArrayList<Fournisseur> fournisseurs = new ArrayList<Fournisseur>();
+		Fournisseur airFrance = new Fournisseur("AirFrance");
+		Fournisseur americanAirline = new Fournisseur("American Airline");
 		
 		airFrance.addBillet(billet);
+		americanAirline.addBillet(billet);
 		
+		fournisseurs.add(airFrance);
+		fournisseurs.add(americanAirline);
+		
+		//Négociateurs
+		Negociateur bob = new Negociateur(fournisseurs);
+		bob.setBillet(billet);
+		
+		//Démarrage des threads
 		airFrance.start();
+		americanAirline.start();;
 		bob.start();
 	}
 

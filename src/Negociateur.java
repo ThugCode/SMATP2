@@ -2,99 +2,117 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Negociateur extends Thread {
+	
+	private final static int MAX_PROPOSITIONS = 5;
 
 	private Socket socket;
 	private BilletAvion billet;
-	private Fournisseur fournisseur;
+	private ArrayList<Fournisseur> fournisseurs;
+	private Fournisseur meilleurFournisseur;
+	private int meilleurOffre;
 	private int prixActuel;
 	private int prixMax;
 	private int nbPropositions;
 
-	public Negociateur(Fournisseur f) {
-		this.fournisseur = f;
+	public Negociateur(ArrayList<Fournisseur> f) {
+		this.fournisseurs = f;
 		this.nbPropositions = 0;
+		this.meilleurFournisseur = null;
+		this.meilleurOffre = 0;
 	}
 
 	@Override
 	public void run() {
 
 		try {
-			this.socket = new Socket(this.fournisseur.getSocket().getInetAddress(),this.fournisseur.getSocket().getLocalPort());
-			ObjectOutputStream outToServer = new ObjectOutputStream(this.socket.getOutputStream());
-			ObjectInputStream inFromServer = new ObjectInputStream(this.socket.getInputStream());
 
-			Message msg = new Message(Commons.TypeMessage.CALL, this.billet);
+			for(Fournisseur fournisseur : this.fournisseurs) {
 
-			outToServer.writeObject(msg);
+				this.socket = new Socket(fournisseur.getSocket().getInetAddress(), fournisseur.getSocket().getLocalPort());
+				ObjectOutputStream outToServer = new ObjectOutputStream(this.socket.getOutputStream());
+				ObjectInputStream inFromServer = new ObjectInputStream(this.socket.getInputStream());
 
-			boolean finNego = false;
+				Message msg = new Message(Commons.TypeMessage.CALL, this.billet);
+				this.prixMax = (int) (this.billet.getPrix() * 1.2);
+				this.nbPropositions = 0;
 
-			while(!finNego) {
-				msg = (Message) inFromServer.readObject();
+				outToServer.writeObject(msg);
 
-				switch(msg.getType()) {
+				boolean finNego = false;
 
-				case PROPOSITION :
-					log("Proposition reçue : " + msg.getPrix());
+				while(!finNego) {
+					msg = (Message) inFromServer.readObject();
 
-					if(this.acceptProposition(msg.getPrix())) {
-						log("Proposition acceptée : " + this.prixActuel);
-						msg = new Message(Commons.TypeMessage.ACCEPT, this.prixActuel);
-						outToServer.writeObject(msg);
+					switch(msg.getType()) {
+
+					case PROPOSITION :
+						log("Proposition reçue : " + msg.getPrix());
+
+						if(this.acceptProposition(msg.getPrix())) {
+							log("Proposition acceptée : " + this.prixActuel);
+							msg = new Message(Commons.TypeMessage.ACCEPT, this.prixActuel);
+							outToServer.writeObject(msg);
+						} else {
+							log("Contre-Proposition soumise : " + this.prixActuel);
+							msg = new Message(Commons.TypeMessage.COUNTER, this.prixActuel);
+							outToServer.writeObject(msg);
+
+							this.nbPropositions++;
+						}
+						break;
+
+					case ACCEPT :
+						log("Contre-Proposition acceptée par le fournisseur : " + this.prixActuel);
 						finNego = true;
-					} else {
-						log("Contre-Proposition soumise : " + this.prixActuel);
-						msg = new Message(Commons.TypeMessage.COUNTER, this.prixActuel);
-						outToServer.writeObject(msg);
 						
-						this.nbPropositions++;
+						if(this.meilleurFournisseur == null) {
+							this.meilleurFournisseur = fournisseur;
+							this.meilleurOffre = this.prixActuel;
+						} else if (this.prixActuel < this.meilleurOffre) {
+							this.meilleurFournisseur = fournisseur;
+							this.meilleurOffre = this.prixActuel;
+						}
+						break;
+
+					default :
+						System.out.println("Default");
 					}
-					break;
-					
-				case ACCEPT :
-					log("Contre-Proposition acceptée par le fournisseur : " + this.prixActuel);
-					finNego = true;
-					break;
-					
-				default :
-					System.out.println("Defaut");
+
 				}
 
+				this.socket.close();
 			}
-
-			this.socket.close();
-
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-
-		//formulation appel offre
-
-		//Engagement de la négociation
-
-		//tant que négociation
-
-		//pour chaque proposition vérification de l'acceptation
-
-		//sinon continue ou pas
+		
+		if(this.meilleurFournisseur == null) {
+			log("Aucun billet acheté ou trouvé");
+		} else {
+			log("Billet acheté chez : " + this.meilleurFournisseur.getNom() + " pour : " + this.meilleurOffre);
+		}
 
 	}
 
 	private boolean acceptProposition(int prix) {
+		double pourcentage = ThreadLocalRandom.current().nextDouble(0.1, 0.5);
+		
 		if(prix > this.prixMax) {
 			log("proposition > prixMax");
-			this.prixActuel = (int) (prix - (prix*0.2));
+			this.prixActuel = (int) (prix - (prix*pourcentage));
 			return false;
 		}
 		else {
 			log("proposition < prixMax");
-			if((new Random().nextInt(10)) > 3 && this.nbPropositions < 6) {
-				this.prixActuel += (prix - this.prixActuel)/8;
+			if(this.nbPropositions < Negociateur.MAX_PROPOSITIONS) {
+				this.prixActuel = (int) (prix - (prix*pourcentage));
 				log("On essaye de faire baisser le prix");
 				return false;
 			}

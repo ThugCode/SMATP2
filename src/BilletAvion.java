@@ -7,8 +7,6 @@ public class BilletAvion implements Serializable {
 	private Commons.Destination depart;
 	private Commons.Destination arrivee;
 	private int prix;
-	private int prixMin;
-	private int prixMax;
 	private Date date;
 	
 	public BilletAvion(Commons.Destination depart, Commons.Destination arrivee) {
@@ -16,12 +14,10 @@ public class BilletAvion implements Serializable {
 		this.arrivee = arrivee;
 	}
 	
-	public BilletAvion(Commons.Destination dep, Commons.Destination arr, int p, int pMin, int pMax) {
+	public BilletAvion(Commons.Destination dep, Commons.Destination arr, int p) {
 		this.depart = dep;
 		this.arrivee = arr;
 		this.prix = p;
-		this.prixMin = pMin;
-		this.prixMax = pMax;
 	}
 
 	@Override
@@ -58,23 +54,7 @@ public class BilletAvion implements Serializable {
 	public void setPrix(int prix) {
 		this.prix = prix;
 	}
-
-	public int getPrixMin() {
-		return prixMin;
-	}
-
-	public void setPrixMin(int prixMin) {
-		this.prixMin = prixMin;
-	}
 	
-	public int getPrixMax() {
-		return prixMax;
-	}
-
-	public void setPrixMax(int prixMax) {
-		this.prixMax = prixMax;
-	}
-
 	public Date getDate() {
 		return date;
 	}
