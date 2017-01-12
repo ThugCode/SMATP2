@@ -10,6 +10,7 @@ public class Negociateur extends Thread {
 	
 	private final static int MAX_PROPOSITIONS = 5;
 
+	private String nom;
 	private Socket socket;
 	private BilletAvion billet;
 	private ArrayList<Fournisseur> fournisseurs;
@@ -19,7 +20,8 @@ public class Negociateur extends Thread {
 	private int prixMax;
 	private int nbPropositions;
 
-	public Negociateur(ArrayList<Fournisseur> f) {
+	public Negociateur(String nom, ArrayList<Fournisseur> f) {
+		this.nom = nom;
 		this.fournisseurs = f;
 		this.nbPropositions = 0;
 		this.meilleurFournisseur = null;
@@ -67,7 +69,7 @@ public class Negociateur extends Thread {
 						break;
 
 					case ACCEPT :
-						log("Contre-Proposition acceptée par le fournisseur : " + this.prixActuel);
+						log("Billet négocié au prix de : " + this.prixActuel);
 						finNego = true;
 						
 						if(this.meilleurFournisseur == null) {
@@ -87,18 +89,18 @@ public class Negociateur extends Thread {
 
 				this.socket.close();
 			}
+			
+			if(this.meilleurFournisseur == null) {
+				log("Aucun billet acheté ou trouvé");
+			} else {
+				log("Billet acheté chez : " + this.meilleurFournisseur.getNom() + " pour : " + this.meilleurOffre);
+			}
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
-		
-		if(this.meilleurFournisseur == null) {
-			log("Aucun billet acheté ou trouvé");
-		} else {
-			log("Billet acheté chez : " + this.meilleurFournisseur.getNom() + " pour : " + this.meilleurOffre);
-		}
-
 	}
 
 	private boolean acceptProposition(int prix) {
@@ -125,7 +127,7 @@ public class Negociateur extends Thread {
 
 	private void log(String s) {
 		if(Main.verbose)
-			System.out.println("Négociateur : " + s);
+			System.out.println("Négociateur " + this.nom + " : " + s);
 	}
 
 	public BilletAvion getBillet() {
