@@ -7,6 +7,13 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Classe modélisant la compagnie aérienne 
+ * qui vend des billets
+ * 
+ * @author Loïc GERLAND / Léo LETOURNEUR
+ *
+ */
 public class Fournisseur extends Thread {
 
 	private final static int MAX_PROPOSITIONS = 5;
@@ -34,6 +41,7 @@ public class Fournisseur extends Thread {
 		try {
 
 			while(true) {
+				//On attend la connexion d'un négociateur pour commencer
 				socketClient = this.socket.accept();
 				ObjectOutputStream outToClient = new ObjectOutputStream(socketClient.getOutputStream());
 				ObjectInputStream inFromClient = new ObjectInputStream(socketClient.getInputStream());
@@ -46,6 +54,7 @@ public class Fournisseur extends Thread {
 
 					switch(msg.getType()) {
 
+					//Cas de la réception d'une appel d'offre
 					case CALL : 
 						if(billets.contains(msg.getBillet())) {
 							int i = billets.indexOf(msg.getBillet());
@@ -60,6 +69,7 @@ public class Fournisseur extends Thread {
 						}
 						break;
 
+					//Cas de la réception d'une contre proposition du client
 					case COUNTER :
 						log("Contre-proposition reçue : " + msg.getPrix());
 
@@ -76,6 +86,7 @@ public class Fournisseur extends Thread {
 						}
 						break;
 
+					//Cas de l'acceptation de l'offre par le client
 					case ACCEPT : 
 						log("Proposition acceptée : " + msg.getPrix());
 						finNego = true;
@@ -98,17 +109,21 @@ public class Fournisseur extends Thread {
 		}
 	}
 
+	/*
+	 * Fonction qui gère la négociation
+	 */
 	private boolean acceptProposition(int prix) {
-		double pourcentage = ThreadLocalRandom.current().nextDouble(1.1, 1.5);
+		double pourcentage = ThreadLocalRandom.current().nextDouble(0.1, 0.4);
 
 		if(prix < this.offre.getPrix() / 2) {
 			log("proposition < prixMin");
-			this.prixActuel = (int) (this.offre.getPrix() * pourcentage);
+			this.prixActuel = (int) (this.offre.getPrix() + (this.offre.getPrix() * pourcentage));
 			return false;
 		} else {
 			log("proposition > prixMin");
-			if(this.nbPropositions < Fournisseur.MAX_PROPOSITIONS) {
-				this.prixActuel = (int) (prix * pourcentage);
+			if(new Random().nextInt(10) > 1 && this.nbPropositions < Fournisseur.MAX_PROPOSITIONS) {
+				int tmp = this.offre.getPrix() - prix;
+				this.prixActuel = (int) (this.prixActuel - (tmp  * pourcentage));
 				log("On essaye de faire monter le prix");
 				return false;
 			}

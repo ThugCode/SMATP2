@@ -6,6 +6,13 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Classe modélisant l'agent voulant acheter un billet d'avion
+ * à une compagnie aérienne
+ * 
+ * @author Loïc GERLAND / Léo LETOURNEUR
+ *
+ */
 public class Negociateur extends Thread {
 	
 	private final static int MAX_PROPOSITIONS = 5;
@@ -14,7 +21,7 @@ public class Negociateur extends Thread {
 	private Socket socket;
 	private BilletAvion billet;
 	private ArrayList<Fournisseur> fournisseurs;
-	private Fournisseur meilleurFournisseur;
+	private String meilleurFournisseur;
 	private int meilleurOffre;
 	private int prixActuel;
 	private int prixMax;
@@ -32,13 +39,14 @@ public class Negociateur extends Thread {
 	public void run() {
 
 		try {
-
+			//On effectue une négociation avec chaque fournisseur
 			for(Fournisseur fournisseur : this.fournisseurs) {
 
 				this.socket = new Socket(fournisseur.getSocket().getInetAddress(), fournisseur.getSocket().getLocalPort());
 				ObjectOutputStream outToServer = new ObjectOutputStream(this.socket.getOutputStream());
 				ObjectInputStream inFromServer = new ObjectInputStream(this.socket.getInputStream());
 
+				//Envoie de l'appel d'offre pour le billet
 				Message msg = new Message(Commons.TypeMessage.CALL, this.billet);
 				this.prixMax = (int) (this.billet.getPrix() * 1.2);
 				this.nbPropositions = 0;
@@ -52,6 +60,7 @@ public class Negociateur extends Thread {
 
 					switch(msg.getType()) {
 
+					//Cas d'une réception d'une proposition de billet
 					case PROPOSITION :
 						log("Proposition reçue : " + msg.getPrix());
 
@@ -67,16 +76,18 @@ public class Negociateur extends Thread {
 							this.nbPropositions++;
 						}
 						break;
-
+					
+					//Cas de l'acceptation de l'enchère
 					case ACCEPT :
 						log("Billet négocié au prix de : " + this.prixActuel);
 						finNego = true;
 						
+						//Enregistrement de la meilleur offre
 						if(this.meilleurFournisseur == null) {
-							this.meilleurFournisseur = fournisseur;
+							this.meilleurFournisseur = fournisseur.getNom();
 							this.meilleurOffre = this.prixActuel;
 						} else if (this.prixActuel < this.meilleurOffre) {
-							this.meilleurFournisseur = fournisseur;
+							this.meilleurFournisseur = fournisseur.getNom();
 							this.meilleurOffre = this.prixActuel;
 						}
 						break;
@@ -93,7 +104,7 @@ public class Negociateur extends Thread {
 			if(this.meilleurFournisseur == null) {
 				log("Aucun billet acheté ou trouvé");
 			} else {
-				log("Billet acheté chez : " + this.meilleurFournisseur.getNom() + " pour : " + this.meilleurOffre);
+				log("Billet acheté chez : " + this.meilleurFournisseur + " pour : " + this.meilleurOffre);
 			}
 			
 		} catch (IOException e) {
@@ -103,8 +114,16 @@ public class Negociateur extends Thread {
 		}
 	}
 
+	/*
+	 * Fonction qui gère la négociation
+	 */
 	private boolean acceptProposition(int prix) {
-		double pourcentage = ThreadLocalRandom.current().nextDouble(0.1, 0.5);
+		double pourcentage = ThreadLocalRandom.current().nextDouble(0.1, 0.4);
+		
+		if(this.nbPropositions == 0) {
+			this.prixActuel = (int) (prix - (prix * pourcentage));
+			return false;
+		}
 		
 		if(prix > this.prixMax) {
 			log("proposition > prixMax");
@@ -113,8 +132,9 @@ public class Negociateur extends Thread {
 		}
 		else {
 			log("proposition < prixMax");
-			if(this.nbPropositions < Negociateur.MAX_PROPOSITIONS) {
-				this.prixActuel = (int) (prix - (prix*pourcentage));
+			if(new Random().nextInt(10) > 1 && this.nbPropositions < Negociateur.MAX_PROPOSITIONS) {
+				int tmp = prix - this.prixActuel;
+				this.prixActuel = (int) (this.prixActuel + (tmp * pourcentage));
 				log("On essaye de faire baisser le prix");
 				return false;
 			}
