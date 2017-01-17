@@ -66,6 +66,7 @@ public class Fournisseur extends Thread {
 							outToClient.writeObject(msg);
 						} else {
 							log("Pas de billet disponible");
+							finNego = true;
 						}
 						break;
 
@@ -78,6 +79,7 @@ public class Fournisseur extends Thread {
 
 							msg = new Message(Commons.TypeMessage.ACCEPT, this.prixActuel);
 							outToClient.writeObject(msg);
+							finNego = true;
 						} else {
 							log("Envoie d'une nouvelle propostion : " + this.prixActuel);
 
@@ -114,6 +116,7 @@ public class Fournisseur extends Thread {
 	 */
 	private boolean acceptProposition(int prix) {
 		double pourcentage = ThreadLocalRandom.current().nextDouble(0.1, 0.4);
+		int rand = ThreadLocalRandom.current().nextInt(11);
 
 		if(prix < this.offre.getPrix() / 2) {
 			log("proposition < prixMin");
@@ -121,7 +124,7 @@ public class Fournisseur extends Thread {
 			return false;
 		} else {
 			log("proposition > prixMin");
-			if(new Random().nextInt(10) > 1 && this.nbPropositions < Fournisseur.MAX_PROPOSITIONS) {
+			if(rand > 1 && this.nbPropositions < Fournisseur.MAX_PROPOSITIONS) {
 				int tmp = this.offre.getPrix() - prix;
 				this.prixActuel = (int) (this.prixActuel - (tmp  * pourcentage));
 				log("On essaye de faire monter le prix");

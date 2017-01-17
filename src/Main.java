@@ -31,7 +31,7 @@ public class Main {
 		
 		//Démarrage des threads
 		airFrance.start();
-		americanAirline.start();;
+		americanAirline.start();
 		bob.start();
 		alice.start();
 	}

@@ -119,6 +119,7 @@ public class Negociateur extends Thread {
 	 */
 	private boolean acceptProposition(int prix) {
 		double pourcentage = ThreadLocalRandom.current().nextDouble(0.1, 0.4);
+		int rand = ThreadLocalRandom.current().nextInt(11);
 		
 		if(this.nbPropositions == 0) {
 			this.prixActuel = (int) (prix - (prix * pourcentage));
@@ -132,7 +133,7 @@ public class Negociateur extends Thread {
 		}
 		else {
 			log("proposition < prixMax");
-			if(new Random().nextInt(10) > 1 && this.nbPropositions < Negociateur.MAX_PROPOSITIONS) {
+			if(rand > 1 && this.nbPropositions < Negociateur.MAX_PROPOSITIONS) {
 				int tmp = prix - this.prixActuel;
 				this.prixActuel = (int) (this.prixActuel + (tmp * pourcentage));
 				log("On essaye de faire baisser le prix");
